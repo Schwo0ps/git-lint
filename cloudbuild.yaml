@@ -1,3 +1,50 @@
 steps:
-- name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '.']
+# Set up git repo
+- name: 'gcr.io/cloud-builders/git'
+  args: ['init']
+  id: init
+- name: 'gcr.io/cloud-builders/git'
+  args: ['remote', 'add', 'origin', 'git@github.com:Schwo0ps/$REPO_NAME']
+  waitFor: ['init']
+
+# Clone git credentials
+- name: 'gcr.io/cloud-builders/gsutil'
+  args: ['-m', 'cp', '-r', 'gs://miso-keys/.ssh/*', '/root/.ssh/']
+  waitFor: ['-']
+  id: cp
+  volumes:
+  - name: 'ssh'
+    path: '/root/.ssh'
+- name: 'gcr.io/cloud-builders/git'
+  entrypoint: 'bash'
+  waitFor: ['cp']
+  args:
+  - '-c'
+  - |
+    chmod 600 /root/.ssh/id_rsa
+    cat <<EOF >/root/.ssh/config
+    Hostname github.com
+    IdentityFile /root/.ssh/id_rsa
+    EOF
+    mv known_hosts /root/.ssh/known_hosts
+  volumes:
+  - name: 'ssh'
+    path: /root/.ssh
+
+# Checkout branch
+- name: 'gcr.io/cloud-builders/git'
+  args: ['fetch', '--all']
+  volumes:
+  - name: 'ssh'
+    path: '/root/.ssh'
+- name: 'gcr.io/cloud-builders/git'
+  args: ['checkout', '-f', '$COMMIT_SHA']
+
+# Run gitlint
+- name: 'python'
+  entrypoint: 'bash'
+  args:
+  - '-c'
+  - |
+    pip install gitlint > /dev/null
+    gitlint
