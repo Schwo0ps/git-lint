@@ -1,17 +1,7 @@
 steps:
-# Set up git repo
-- name: gcr.io/cloud-builders/git
-  args: ['init']
-  id: init
-- name: gcr.io/cloud-builders/git
-  args: ['remote', 'add', 'origin', 'git@github.com:Schwo0ps/$REPO_NAME']
-  waitFor: ['init']
-
 # Clone git credentials
 - name: gcr.io/cloud-builders/gsutil
   args: ['-m', 'cp', '-r', 'gs://miso-keys/.ssh/*', '/root/.ssh/']
-  waitFor: ['-']
-  id: cp
   volumes:
   - name: ssh
     path: /root/.ssh
@@ -27,11 +17,10 @@ steps:
   volumes:
   - name: ssh
     path: /root/.ssh
-  waitFor: ['cp']
-  id: decrypt
+
+# Set up git repo
 - name: gcr.io/cloud-builders/git
   entrypoint: bash
-  waitFor: ['decrypt']
   args:
   - '-c'
   - |
@@ -41,24 +30,16 @@ steps:
     IdentityFile /root/.ssh/id_rsa
     EOF
     mv known_hosts /root/.ssh/known_hosts
+    rm *
+    git clone git@github.com:Schwo0ps/$REPO_NAME .
   volumes:
   - name: ssh
     path: /root/.ssh
-
-# Checkout branch
-- name: gcr.io/cloud-builders/git
-  args: ['fetch', '--all']
-  volumes:
-  - name: ssh
-    path: /root/.ssh
-- name: gcr.io/cloud-builders/git
-  args: ['checkout', '-f', '$COMMIT_SHA']
 
 # Run gitlint
-- name: python
-  entrypoint: bash
+- name: gcr.io/software-builds/gitlint
   args:
-  - '-c'
-  - |
-    pip install gitlint > /dev/null
-    gitlint --commits origin..HEAD -c general.ignore-fixup-commits=false -c general.ignore-squash-commits=false -c title-must-not-contain-word.words=WIP,FIXUP,SQUASH
+  - --commits origin..$COMMIT_SHA
+  - -c general.ignore-fixup-commits=false
+  - -c general.ignore-squash-commits=false
+  - -c title-must-not-contain-word.words=WIP,FIXUP,SQUASH
