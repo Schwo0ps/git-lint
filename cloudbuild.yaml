@@ -47,4 +47,4 @@ steps:
   - '-c'
   - |
     pip install gitlint > /dev/null
-    gitlint
+    gitlint --commits origin..HEAD
