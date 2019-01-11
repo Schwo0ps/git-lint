@@ -29,7 +29,6 @@ steps:
     Hostname github.com
     IdentityFile /root/.ssh/id_rsa
     EOF
-    mv known_hosts /root/.ssh/known_hosts
     rm *
     git clone git@github.com:Schwo0ps/$REPO_NAME .
   volumes:
