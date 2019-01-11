@@ -38,7 +38,11 @@ steps:
 # Run gitlint
 - name: gcr.io/software-builds/gitlint
   args:
-  - --commits origin..$COMMIT_SHA
-  - -c general.ignore-fixup-commits=false
-  - -c general.ignore-squash-commits=false
-  - -c title-must-not-contain-word.words=WIP,FIXUP,SQUASH
+  - --commits
+  - origin..$COMMIT_SHA
+  - -c
+  - general.ignore-fixup-commits=false
+  - -c
+  - general.ignore-squash-commits=false
+  - -c
+  - title-must-not-contain-word.words=WIP,FIXUP,SQUASH
