@@ -47,4 +47,4 @@ steps:
   - '-c'
   - |
     pip install gitlint > /dev/null
-    gitlint --commits origin..HEAD -c general.ignore-fixup-commits=false -c general.ignore-squash-commits=false
+    gitlint --commits origin..HEAD -c general.ignore-fixup-commits=false -c general.ignore-squash-commits=false -c title-must-not-contain-word.words=WIP,FIXUP,SQUASH
