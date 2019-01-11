@@ -1,23 +1,37 @@
 steps:
 # Set up git repo
-- name: 'gcr.io/cloud-builders/git'
+- name: gcr.io/cloud-builders/git
   args: ['init']
   id: init
-- name: 'gcr.io/cloud-builders/git'
+- name: gcr.io/cloud-builders/git
   args: ['remote', 'add', 'origin', 'git@github.com:Schwo0ps/$REPO_NAME']
   waitFor: ['init']
 
 # Clone git credentials
-- name: 'gcr.io/cloud-builders/gsutil'
+- name: gcr.io/cloud-builders/gsutil
   args: ['-m', 'cp', '-r', 'gs://miso-keys/.ssh/*', '/root/.ssh/']
   waitFor: ['-']
   id: cp
   volumes:
-  - name: 'ssh'
-    path: '/root/.ssh'
-- name: 'gcr.io/cloud-builders/git'
-  entrypoint: 'bash'
+  - name: ssh
+    path: /root/.ssh
+- name: gcr.io/cloud-builders/gcloud
+  args:
+  - kms
+  - decrypt
+  - --ciphertext-file=/root/.ssh/id_rsa.enc
+  - --plaintext-file=/root/.ssh/id_rsa
+  - --location=global
+  - --keyring=build-keys
+  - --key=git-key
+  volumes:
+  - name: ssh
+    path: /root/.ssh
   waitFor: ['cp']
+  id: decrypt
+- name: gcr.io/cloud-builders/git
+  entrypoint: bash
+  waitFor: ['decrypt']
   args:
   - '-c'
   - |
@@ -28,21 +42,21 @@ steps:
     EOF
     mv known_hosts /root/.ssh/known_hosts
   volumes:
-  - name: 'ssh'
+  - name: ssh
     path: /root/.ssh
 
 # Checkout branch
-- name: 'gcr.io/cloud-builders/git'
+- name: gcr.io/cloud-builders/git
   args: ['fetch', '--all']
   volumes:
-  - name: 'ssh'
-    path: '/root/.ssh'
-- name: 'gcr.io/cloud-builders/git'
+  - name: ssh
+    path: /root/.ssh
+- name: gcr.io/cloud-builders/git
   args: ['checkout', '-f', '$COMMIT_SHA']
 
 # Run gitlint
-- name: 'python'
-  entrypoint: 'bash'
+- name: python
+  entrypoint: bash
   args:
   - '-c'
   - |
